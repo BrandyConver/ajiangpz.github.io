@@ -176,7 +176,7 @@ router.post('/files',function(req,res,next){
 })
 module.exports = router
    ```
-   users.js 这个接口处理用户的登录注册
+ users.js 这个接口处理用户的登录注册
    ```javascript
 const express = require('express');
 const router = express.Router();
@@ -272,8 +272,10 @@ router.post('/users', function(req, res, next) {
 
 module.exports = router;
 ```
+
+
 good.js 这个接口处理商品数据的获取
-```jacascript
+```javascript
 var express = require('express');
 var router = express.Router();
 var Goods = require('../models/goods');
