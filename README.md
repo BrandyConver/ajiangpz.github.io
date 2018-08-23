@@ -148,3 +148,229 @@
    
 ## 后台接口模块
    本项目主要有两个后台接口，一个为goods，即商品接口，另一个为users，即用户接口，这两个接口实现了前台与数据库的对接。
+   file.js 这个接口主要处理图片上传后后去图片的路径，并且将其存入数据库
+   ```javascript
+   const express=require('express');
+const pathlib=require('path');
+const router = express.Router();
+const fs=require('fs');
+router.post('/files',function(req,res,next){
+    console.log(req.files[0].originalname)
+    var newName=req.files[0].path+pathlib.parse(req.files[0].originalname).ext;
+    console.log(newName);
+    fs.rename(req.files[0].path,newName,function(err){
+        if(err){
+            res.json({
+                status:'1',
+                msg:'文件上传失败'
+            })
+        }else{
+            res.json({
+                status:'0',
+                msg:'文件上传成功',
+                result:newName
+
+            })
+        }
+    })
+})
+module.exports = router
+   ```
+   users.js 这个接口处理用户的登录注册
+   ```javascript
+const express = require('express');
+const router = express.Router();
+const Users = require('../models/users');
+var server=express();
+/* GET users listing. */
+router.post('/users', function(req, res, next) {
+  console.log(req.body)
+  let type=req.body.params.type;  
+  var user=req.body.params.user;
+  var pass=parseInt(req.body.params.pass);
+  if(type=="login")
+  {
+    console.log("登录")  
+    console.log(user)
+  Users.findOne({user:user,pass:pass},function(err,doc){
+    console.log(doc)
+    var isOk=true;
+    if(err){
+      isOk=false;
+      res.json({
+        status:'1',
+        msg:err.message,
+      })
+    }else if(doc!=null){    
+        // res.cookie('name',user,{path:'/',maxAge:30*24*3600*1000});
+        if(req.session.user!==user){
+          req.session.user=user;
+
+          console.log(req.session.user+"，第一次登录")
+        }else{
+          
+          console.log(req.session.user+"，欢迎回来")
+        }
+        res.json({
+        status:'0',
+        msg:'欢迎来到校园二手',
+        result:true
+      })  
+    }else{
+      res.json({
+        status:'0',
+        msg:'用户或密码错误',
+        result:false
+      }) 
+    }
+  })
+}else if(type=="register"){
+  console.log("注册")
+  console.log(user)
+    Users.find({user:user},function(err,doc){
+      console.log(doc)
+    if(err){
+      console.log("出错了")
+      res.json({
+        status:'1',
+        msg:err.message,
+      })
+      console.log(err.message)
+    }
+    else if(doc.length!==0){
+      console.log(doc)
+      res.json({
+        status:'0',
+        msg:'用户已存在',
+        result:false
+      })
+    }else{
+      var newUser={
+        "user":req.body.params.user,
+        "pass":pass
+      }
+      var user=new Users(newUser);
+      console.log(user)
+      user.save(function(err){
+        if(err){
+          console.log(err)
+        }else{
+          console.log("成功插入") 
+          res.json({
+        status:'0',
+        msg:'注册成功',
+        result:true
+      })
+        }
+      })
+     
+    } 
+  })
+
+} 
+});
+
+module.exports = router;
+```
+good.js 这个接口处理商品数据的获取
+```jacascript
+var express = require('express');
+var router = express.Router();
+var Goods = require('../models/goods');
+var server=express();
+/* GET users listing. */
+//4.路由获取
+router.post('/goods',function(req, res, next) {
+	//5.查询mongoDB的goods数据  基于mongoose实现商品列表的查
+	console.log(req.body)
+	let type=req.body.params.type;
+	let price=req.body.params.price;
+	let place=req.body.params.place;
+	let name=req.body.params.name;
+	let discript=req.body.params.discript;
+	let connact=req.body.params.connact;
+	let src=req.body.params.src;
+	var newGood={
+		"productName":name,
+		"productPrice":parseInt(price),
+		"productConnact":connact,
+		"productPlace":place,
+		"productDescript":discript,
+		"productSrc":src,
+		"productType":type
+      }
+      var good=new Goods(newGood);
+      console.log(good)
+	  good.save(function(err){
+        if(err){
+		  console.log(err)
+		  res.json({
+			status:'1',
+			msg:'数据插入失败',
+			result:false
+		  })
+        }else{
+        console.log("成功插入") 
+        res.json({
+        status:'0',
+        msg:'数据插入成功',
+        result:true
+      })
+    }
+    })
+})
+router.get('/goods', function(req, res, next) {
+	//5.查询mongoDB的goods数据  基于mongoose实现商品列表的查
+	if(req.query.goodId){
+		console.log("查找一个商品")
+		Goods.findOne({_id:req.query.goodId},function(err,result){
+			if(err){
+				res.json({
+					status:'1',
+					msg:'失败'
+				})
+				console.log(err)
+			}else{
+				console.log(result);
+				res.json({
+					status:'0',
+					msg:'成功',
+					result:result
+				})
+			}
+		})	
+	}else{
+		console.log(req.query)
+		console.log("查全部")
+		let type=req.param("type");
+		let page=parseInt(req.param("page"));
+		let pageSize=parseInt(req.param("pageSize"));
+		let sort=parseInt(req.param("sort"));
+		let skip=(page-1)*pageSize;
+		let goodModel=Goods.find({productType:type}).skip(skip).limit(pageSize);
+		goodModel.sort({'productPrice':sort});
+		goodModel.exec(function(err,doc){
+			if(err){
+				res.json({
+					status:'1',
+					msg:err.message
+				})
+			}else{
+				Goods.find({productType:type},function(err,result){
+					jsonArray={list:doc,total:result.length}
+					res.json({
+						status:'0',
+						msg:'',
+						result:jsonArray
+					})
+				})
+			}
+	 
+		})
+	}
+
+  	// res.send('hello,goods');
+})
+module.exports = router;
+
+```
