@@ -274,7 +274,7 @@ module.exports = router;
 ```
 
 
-good.js 这个接口处理商品数据的获取
+good.js 这个接口处理商品数据的获取和插入
 ```javascript
 var express = require('express');
 var router = express.Router();
