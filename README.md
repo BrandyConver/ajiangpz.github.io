@@ -127,6 +127,23 @@
              }
            })
        }
+        onSubmit(){
+        this.$axios.post("/users",{
+          params:{user:this.user,pass:this.pass,type:"login"}
+        }).then((response)=>{
+          let res=response.data;
+          if(res.status=="0"){
+              if(res.result==false){
+                  alert("用户名或密码错误")
+              }else{
+            this.$store.dispatch('UserLogin', true);
+            this.$store.dispatch('UserName',this.user)
+            // store.commit('UserLogin',true)
+            this.$router.push(this.$route.query.redirect)
+          }
+          }
+        })
+        }
    ```  
    
 ## 后台接口模块
